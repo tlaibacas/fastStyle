@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const {
-  parsePhoneNumberFromString,
-  isValidPhoneNumber,
-} = require("libphonenumber-js");
-const Language = require("./Language"); // Import the Language model
+  validatePhoneNumber,
+  getPhoneFinal,
+  getCountryPrefix,
+  validateLanguages,
+} = require("../handlers/handler"); // Import the handler
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
@@ -63,14 +64,7 @@ const userSchema = new Schema({
     },
     validate: {
       validator: function (v) {
-        try {
-          const phoneNumber = parsePhoneNumberFromString(
-            `${v}${this.phoneNumber}`
-          );
-          return phoneNumber && phoneNumber.isValid();
-        } catch (e) {
-          return false;
-        }
+        return validatePhoneNumber(v, this.phoneNumber);
       },
       message: "Invalid phone prefix",
     },
@@ -79,30 +73,24 @@ const userSchema = new Schema({
     type: String,
     validate: {
       validator: function (v) {
-        return isValidPhoneNumber(`${this.phonePrefix}${v}`);
+        return validatePhoneNumber(this.phonePrefix, v);
       },
       message: "Invalid phone number",
     },
   },
   phoneFinal: {
     type: String,
-    required: function () {
-      return this.phoneNumber != null && this.phonePrefix != null;
-    },
     get: function () {
-      return `${this.phonePrefix}${this.phoneNumber}`;
+      return getPhoneFinal(this.phonePrefix, this.phoneNumber);
     },
   },
-  country: {
+  countryPrefix: {
     type: String,
     required: function () {
       return this.phonePrefix && this.phoneNumber;
     },
     default: function () {
-      const phoneNumber = parsePhoneNumberFromString(
-        `${this.phonePrefix}${this.phoneNumber}`
-      );
-      return phoneNumber ? phoneNumber.country : null;
+      return getCountryPrefix(this.phonePrefix, this.phoneNumber);
     },
   },
   serviceRate: {
@@ -145,17 +133,13 @@ const userSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  // Adding languages field for spoken languages
-  languages: [languageProficiencySchema], // Array of language objects with proficiency
+  languages: [languageProficiencySchema],
 });
 
 // Custom validation to ensure the language is part of the predefined list
-userSchema.path("languages").validate(async function (languages) {
-  const validLanguages = await Language.find({
-    _id: { $in: languages.map((lang) => lang.language) },
-  });
-  return validLanguages.length === languages.length;
-}, "One or more languages are invalid");
+userSchema
+  .path("languages")
+  .validate(validateLanguages, "One or more languages are invalid");
 
 const User = mongoose.model("User", userSchema);
 
