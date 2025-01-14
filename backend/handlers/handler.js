@@ -1,11 +1,22 @@
-// handler.js
 const {
   parsePhoneNumberFromString,
   isValidPhoneNumber,
-} = require("libphonenumber-js");
-const Language = require("../models/languagesModel"); // Import the Language model
+} = require("libphonenumber-js"); // Phone validation utilities
+const Language = require("../models/languagesModel"); // Language model
+const cron = require("node-cron"); // Cron scheduling library
 
-// Phone validation utility
+// Function to run at specific times
+const startCronJob = () => {
+  const currentTime = new Date();
+  console.log(
+    `The function was executed at ${currentTime.toLocaleTimeString()}`
+  );
+};
+
+// Schedule cron job to run every 10 minutes (on 0, 10, 20, etc.)
+cron.schedule("0,10,20,30,40,50 * * * *", startCronJob);
+
+// Validates phone number using prefix and number
 const validatePhoneNumber = (phonePrefix, phoneNumber) => {
   try {
     const phone = parsePhoneNumberFromString(`${phonePrefix}${phoneNumber}`);
@@ -15,7 +26,7 @@ const validatePhoneNumber = (phonePrefix, phoneNumber) => {
   }
 };
 
-// Get the final phone number by combining the prefix and the number
+// Combines phone prefix and number to get final phone number
 const getPhoneFinal = (phonePrefix, phoneNumber) => {
   if (phonePrefix && phoneNumber) {
     return `${phonePrefix}${phoneNumber}`;
@@ -23,16 +34,16 @@ const getPhoneFinal = (phonePrefix, phoneNumber) => {
   return null;
 };
 
-// Get the country prefix (country name and calling code)
+// Returns country and calling code from phone number
 const getCountryPrefix = (phonePrefix, phoneNumber) => {
   const phone = parsePhoneNumberFromString(`${phonePrefix}${phoneNumber}`);
   return phone ? `${phone.country} (${phone.countryCallingCode})` : null;
 };
 
-// Language validation utility
+// Validates that the languages are correct by checking the Language model
 const validateLanguages = async (languages) => {
   const validLanguages = await Language.find({
-    _id: { $in: languages.map((lang) => lang.language) },
+    _id: { $in: languages.map((lang) => lang.languageId) },
   });
   return validLanguages.length === languages.length;
 };
