@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
-const { parsePhoneNumberFromString } = require("libphonenumber-js");
+const validator = require("validator");
+const {
+  parsePhoneNumberFromString,
+  isValidPhoneNumber,
+} = require("libphonenumber-js");
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
