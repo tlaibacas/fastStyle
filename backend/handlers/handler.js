@@ -45,9 +45,24 @@ const getCountryPrefix = (phonePrefix, phoneNumber) => {
 // Validates that the languages are correct by checking the Language model
 const validateLanguages = async (languages) => {
   const validLanguages = await Language.find({
-    _id: { $in: languages.map((lang) => lang.languageId) },
+    _id: { $in: languages.map((lang) => lang.language) },
   });
   return validLanguages.length === languages.length;
+};
+
+// # Birth calculation # //
+const calculateAge = (birthDate) => {
+  const currentDate = new Date();
+  let age = currentDate.getFullYear() - birthDate.year;
+  const monthDiff = currentDate.getMonth() + 1 - birthDate.month;
+  const dayDiff = currentDate.getDate() - birthDate.day;
+
+  // Adjust age if the birthday hasn't occurred yet this year
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age--;
+  }
+
+  return age;
 };
 
 module.exports = {
@@ -55,4 +70,5 @@ module.exports = {
   getPhoneFinal,
   getCountryPrefix,
   validateLanguages,
+  calculateAge,
 };

@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const { calculateAge } = require("../handlers/handler");
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -40,11 +41,19 @@ exports.getUser = async (req, res) => {
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
+    // Cria o usuário com o pre-save hook aplicando a idade
     const newUser = await User.create(req.body);
+
+    // Remove dados sensíveis
+    const userResponse = newUser.toJSON();
+    delete userResponse.password;
+
+    // Envia a resposta
     res.status(201).json({
       status: "success",
+      message: "User created successfully",
       data: {
-        user: newUser,
+        user: userResponse,
       },
     });
   } catch (err) {

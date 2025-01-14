@@ -5,6 +5,7 @@ const {
   getPhoneFinal,
   getCountryPrefix,
   validateLanguages,
+  calculateAge,
 } = require("../handlers/handler");
 
 const Schema = mongoose.Schema;
@@ -12,7 +13,7 @@ const sexEnum = ["male", "female", "other"];
 const roleEnum = ["client", "worker", "admin"];
 const servicesEnum = [];
 
-// Add language proficiency object schema
+// Language proficiency schema
 const languageProficiencySchema = new Schema({
   language: {
     type: mongoose.Schema.Types.ObjectId,
@@ -120,6 +121,10 @@ const userSchema = new Schema({
       required: true,
     },
   },
+  age: {
+    type: Number, // Age field to store calculated age
+    required: false, // This will be set in pre-save hook
+  },
   serviceSpecialist: {
     type: String,
     enum: servicesEnum,
@@ -136,7 +141,38 @@ const userSchema = new Schema({
   languages: [languageProficiencySchema],
 });
 
-// Custom validation to ensure the language is part of the predefined list
+// Pre-save hook to calculate age
+userSchema.pre("save", function (next) {
+  if (this.isModified("birthDate") || this.isNew) {
+    const age = calculateAge(this.birthDate);
+    this.age = age;
+  }
+  next();
+});
+
+// Include virtuals in JSON output
+userSchema.set("toJSON", {
+  transform: function (doc, ret, options) {
+    return {
+      username: ret.username,
+      email: ret.email,
+      birthDate: ret.birthDate,
+      age: ret.age,
+      phonePrefix: ret.phonePrefix,
+      phoneNumber: ret.phoneNumber,
+      countryPrefix: ret.countryPrefix,
+      role: ret.role,
+      serviceRate: ret.serviceRate,
+      rank: ret.rank,
+      sex: ret.sex,
+      createdAt: ret.createdAt,
+      languages: ret.languages,
+    };
+  },
+  virtuals: true,
+});
+
+// Validate languages
 userSchema
   .path("languages")
   .validate(validateLanguages, "One or more languages are invalid");
