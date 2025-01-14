@@ -1,9 +1,5 @@
 const mongoose = require("mongoose");
-const validator = require("validator");
-const {
-  isValidPhoneNumber,
-  parsePhoneNumberFromString,
-} = require("libphonenumber-js");
+const { parsePhoneNumberFromString } = require("libphonenumber-js");
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
@@ -23,33 +19,15 @@ const userSchema = new Schema({
     unique: true,
     trim: true,
     validate: {
-      validator: validator.isEmail,
+      validator: function (v) {
+        return validator.isEmail(v);
+      },
       message: "Invalid email format",
     },
   },
   password: {
     type: String,
     required: true,
-    validate: [
-      {
-        validator: function (v) {
-          return v.length >= 8;
-        },
-        message: "Password must be at least 8 characters long",
-      },
-      {
-        validator: function (v) {
-          return /[A-Z]/.test(v);
-        },
-        message: "Password must contain at least one uppercase letter",
-      },
-      {
-        validator: function (v) {
-          return /[!@#$%^&*(),.?":{}|<>]/.test(v);
-        },
-        message: "Password must contain at least one special character",
-      },
-    ],
   },
   firstName: {
     type: String,
@@ -94,6 +72,18 @@ const userSchema = new Schema({
     },
     get: function () {
       return `${this.phonePrefix}${this.phoneNumber}`;
+    },
+  },
+  country: {
+    type: String,
+    required: function () {
+      return this.phonePrefix && this.phoneNumber;
+    },
+    default: function () {
+      const phoneNumber = parsePhoneNumberFromString(
+        `${this.phonePrefix}${this.phoneNumber}`
+      );
+      return phoneNumber ? phoneNumber.country : null;
     },
   },
   serviceRate: {
