@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
+const {
+  isValidPhoneNumber,
+  parsePhoneNumberFromString,
+} = require("libphonenumber-js");
+
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
 const roleEnum = ["client", "worker", "admin"];
 const servicesEnum = [];
+
 const userSchema = new Schema({
   username: {
     type: String,
@@ -15,10 +22,34 @@ const userSchema = new Schema({
     required: true,
     unique: true,
     trim: true,
+    validate: {
+      validator: validator.isEmail,
+      message: "Invalid email format",
+    },
   },
   password: {
     type: String,
     required: true,
+    validate: [
+      {
+        validator: function (v) {
+          return v.length >= 8;
+        },
+        message: "Password must be at least 8 characters long",
+      },
+      {
+        validator: function (v) {
+          return /[A-Z]/.test(v);
+        },
+        message: "Password must contain at least one uppercase letter",
+      },
+      {
+        validator: function (v) {
+          return /[!@#$%^&*(),.?":{}|<>]/.test(v);
+        },
+        message: "Password must contain at least one special character",
+      },
+    ],
   },
   firstName: {
     type: String,
@@ -33,9 +64,37 @@ const userSchema = new Schema({
     required: function () {
       return this.phoneNumber != null;
     },
+    validate: {
+      validator: function (v) {
+        try {
+          const phoneNumber = parsePhoneNumberFromString(
+            `${v}${this.phoneNumber}`
+          );
+          return phoneNumber && phoneNumber.isValid();
+        } catch (e) {
+          return false;
+        }
+      },
+      message: "Invalid phone prefix",
+    },
   },
   phoneNumber: {
-    type: Number,
+    type: String,
+    validate: {
+      validator: function (v) {
+        return isValidPhoneNumber(`${this.phonePrefix}${v}`);
+      },
+      message: "Invalid phone number",
+    },
+  },
+  phoneFinal: {
+    type: String,
+    required: function () {
+      return this.phoneNumber != null && this.phonePrefix != null;
+    },
+    get: function () {
+      return `${this.phonePrefix}${this.phoneNumber}`;
+    },
   },
   serviceRate: {
     type: Number,
