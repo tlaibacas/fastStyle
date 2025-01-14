@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
-const Language = require("../models/languagesModel"); // Import the Language model
+const Language = require("../models/languagesModel");
 require("dotenv").config();
 const MONGO_URI = process.env.MONGO_URI;
 
-// List of languages to populate (name and code)
 const languagesToAdd = [
   { name: "Abkhazian", code: "ab" },
   { name: "Afar", code: "aa" },
@@ -116,7 +115,7 @@ const languagesToAdd = [
   { name: "Zulu", code: "zu" },
 ];
 
-// Conectar ao MongoDB Atlas
+// Conect to MongoDB Atlas
 mongoose
   .connect(MONGO_URI, {
     useNewUrlParser: true,

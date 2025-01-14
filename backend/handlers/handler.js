@@ -1,9 +1,9 @@
 const {
   parsePhoneNumberFromString,
   isValidPhoneNumber,
-} = require("libphonenumber-js"); // Phone validation utilities
-const Language = require("../models/languagesModel"); // Language model
-const cron = require("node-cron"); // Cron scheduling library
+} = require("libphonenumber-js");
+const Language = require("../models/languagesModel");
+const cron = require("node-cron");
 
 // Function to run at specific times
 const startCronJob = () => {
@@ -15,6 +15,8 @@ const startCronJob = () => {
 
 // Schedule cron job to run every 10 minutes (on 0, 10, 20, etc.)
 cron.schedule("0,10,20,30,40,50 * * * *", startCronJob);
+
+// # Phone handlers # //
 
 // Validates phone number using prefix and number
 const validatePhoneNumber = (phonePrefix, phoneNumber) => {

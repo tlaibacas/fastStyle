@@ -5,7 +5,7 @@ const {
   getPhoneFinal,
   getCountryPrefix,
   validateLanguages,
-} = require("../handlers/handler"); // Import the handler
+} = require("../handlers/handler");
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
@@ -22,7 +22,7 @@ const languageProficiencySchema = new Schema({
   proficiency: {
     type: String,
     enum: ["beginner", "intermediate", "advanced", "native"],
-    default: "beginner", // Default proficiency level
+    default: "beginner",
   },
 });
 

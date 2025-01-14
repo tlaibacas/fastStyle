@@ -4,7 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/users");
-require("./handlers/handler"); // Importing handler.js to trigger the cron job
+require("./handlers/handler");
 
 const app = express();
 
