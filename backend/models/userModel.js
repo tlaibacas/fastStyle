@@ -4,11 +4,26 @@ const {
   parsePhoneNumberFromString,
   isValidPhoneNumber,
 } = require("libphonenumber-js");
+const Language = require("./Language"); // Import the Language model
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
 const roleEnum = ["client", "worker", "admin"];
 const servicesEnum = [];
+
+// Add language proficiency object schema
+const languageProficiencySchema = new Schema({
+  language: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Language", // Reference to Language model
+    required: true,
+  },
+  proficiency: {
+    type: String,
+    enum: ["beginner", "intermediate", "advanced", "native"],
+    default: "beginner", // Default proficiency level
+  },
+});
 
 const userSchema = new Schema({
   username: {
@@ -130,7 +145,17 @@ const userSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  // Adding languages field for spoken languages
+  languages: [languageProficiencySchema], // Array of language objects with proficiency
 });
+
+// Custom validation to ensure the language is part of the predefined list
+userSchema.path("languages").validate(async function (languages) {
+  const validLanguages = await Language.find({
+    _id: { $in: languages.map((lang) => lang.language) },
+  });
+  return validLanguages.length === languages.length;
+}, "One or more languages are invalid");
 
 const User = mongoose.model("User", userSchema);
 
