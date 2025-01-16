@@ -6,7 +6,7 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Permitir parsing de JSON no corpo das requisições
+app.use(express.json());
 
 // Routes
 app.use("/requests", requestRoutes);
