@@ -1,21 +1,36 @@
+const axios = require("axios");
+const cron = require("node-cron");
+require("dotenv").config();
 const {
   parsePhoneNumberFromString,
   isValidPhoneNumber,
 } = require("libphonenumber-js");
 const Language = require("../models/languagesModel");
-const cron = require("node-cron");
 
 // Function to run at specific times
-const startCronJob = () => {
+
+// Function to make GET request and log results
+const startCronJob = async () => {
   const currentTime = new Date();
-  console.log(
-    `The function was executed at ${currentTime.toLocaleTimeString()}`
-  );
+  console.log(`Cron job executed at ${currentTime.toLocaleTimeString()}`);
+
+  // Obtém a URL da API do arquivo .env
+  const apiUrl = process.env.API_URL;
+
+  if (!apiUrl) {
+    console.error("API URL is not defined in the .env file.");
+    return;
+  }
+
+  try {
+    const response = await axios.get(apiUrl);
+    console.log(`API response:`, response.data);
+  } catch (error) {
+    console.error(`Error during API request:`, error.message);
+  }
 };
 
-// Schedule cron job to run every 10 minutes (on 0, 10, 20, etc.)
-cron.schedule("0,5,10,15,20,25,30,35,40,45,50,55 * * * *", startCronJob);
-
+cron.schedule("0,10,20,30,40,57 * * * *", startCronJob);
 // # Phone handlers # //
 
 // Validates phone number using prefix and number
