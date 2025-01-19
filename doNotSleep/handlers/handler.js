@@ -23,4 +23,4 @@ const startCronJob = async () => {
   }
 };
 
-cron.schedule("0,10,20,30,40,57 * * * *", startCronJob);
+cron.schedule("0,10,20,30,40,50 * * * *", startCronJob);

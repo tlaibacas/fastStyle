@@ -154,17 +154,23 @@ userSchema.pre("save", function (next) {
 userSchema.set("toJSON", {
   transform: function (doc, ret, options) {
     return {
+      id: ret._id,
       username: ret.username,
       email: ret.email,
+      password: ret.password,
+      firstName: ret.firstName,
+      lastName: ret.lastName,
       birthDate: ret.birthDate,
       age: ret.age,
       phonePrefix: ret.phonePrefix,
       phoneNumber: ret.phoneNumber,
+      phoneFinal: ret.phoneFinal,
       countryPrefix: ret.countryPrefix,
       role: ret.role,
       serviceRate: ret.serviceRate,
       rank: ret.rank,
       sex: ret.sex,
+      serviceSpecialist: ret.serviceSpecialist,
       createdAt: ret.createdAt,
       languages: ret.languages,
     };
