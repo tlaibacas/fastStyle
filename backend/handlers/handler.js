@@ -1,5 +1,6 @@
 const axios = require("axios");
 const cron = require("node-cron");
+const argon2 = require("argon2");
 require("dotenv").config();
 const {
   parsePhoneNumberFromString,
@@ -80,10 +81,39 @@ const calculateAge = (birthDate) => {
   return age;
 };
 
+// Function to generate a hash for a password
+async function hashPassword(password) {
+  try {
+    const hash = await argon2.hash(password, {
+      type: argon2.argon2id, // More secure variant (recommended)
+      memoryCost: 2 ** 16, // Memory usage (64 MB)
+      timeCost: 3, // Number of iterations (execution time)
+      parallelism: 1, // Number of threads
+    });
+    return hash;
+  } catch (err) {
+    console.error("Error generating hash:", err);
+    throw err;
+  }
+}
+
+// Function to verify if a password matches the hash
+async function verifyPassword(hash, password) {
+  try {
+    // Verify if the password corresponds to the hash
+    return await argon2.verify(hash, password); // Returns true or false
+  } catch (err) {
+    console.error("Error verifying password:", err);
+    throw err;
+  }
+}
+
 module.exports = {
   validatePhoneNumber,
   getPhoneFinal,
   getCountryPrefix,
   validateLanguages,
   calculateAge,
+  hashPassword,
+  verifyPassword,
 };

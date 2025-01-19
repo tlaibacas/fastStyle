@@ -1,5 +1,5 @@
 const User = require("../models/userModel");
-const { calculateAge } = require("../handlers/handler");
+const { calculateAge, hashPassword } = require("../handlers/handler");
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -41,14 +41,27 @@ exports.getUser = async (req, res) => {
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
-    // Cria o usuário com o pre-save hook aplicando a idade
-    const newUser = await User.create(req.body);
+    const { password, ...userData } = req.body;
 
-    // Remove dados sensíveis
+    if (!password) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Password is required",
+      });
+    }
+
+    // Generate the password hash
+    const hashedPassword = await hashPassword(password);
+
+    const newUser = await User.create({
+      ...userData,
+      password: hashedPassword,
+    });
+
+    // Remove sensitive data from the response
     const userResponse = newUser.toJSON();
-    delete userResponse.password;
+    // delete userResponse.password;
 
-    // Envia a resposta
     res.status(201).json({
       status: "success",
       message: "User created successfully",
