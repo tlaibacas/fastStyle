@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const {
+  hashPassword,
+  encryptData,
+  decryptData,
   validatePhoneNumber,
   getPhoneFinal,
   getCountryPrefix,
@@ -11,22 +14,24 @@ const {
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
 const roleEnum = ["client", "worker", "admin"];
-const servicesEnum = [];
+const proficienciesEnum = ["beginner", "intermediate", "advanced", "native"];
+const servicesEnum = []; // Services enumeration (to be defined)
 
-// Language proficiency schema
+// Language proficiency schema for languages field
 const languageProficiencySchema = new Schema({
   language: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Language", // Reference to Language model
+    ref: "Language", // Reference to the Language model
     required: true,
   },
   proficiency: {
     type: String,
-    enum: ["beginner", "intermediate", "advanced", "native"],
-    default: "beginner",
+    enum: proficienciesEnum,
+    default: "beginner", // Default value
   },
 });
 
+// Main user schema
 const userSchema = new Schema({
   username: {
     type: String,
@@ -65,7 +70,7 @@ const userSchema = new Schema({
     },
     validate: {
       validator: function (v) {
-        return validatePhoneNumber(v, this.phoneNumber);
+        return validatePhoneNumber(v, this.phoneNumber); // Validate phone number prefix
       },
       message: "Invalid phone prefix",
     },
@@ -74,16 +79,14 @@ const userSchema = new Schema({
     type: String,
     validate: {
       validator: function (v) {
-        return validatePhoneNumber(this.phonePrefix, v);
+        return validatePhoneNumber(this.phonePrefix, v); // Validate phone number
       },
       message: "Invalid phone number",
     },
   },
   phoneFinal: {
     type: String,
-    get: function () {
-      return getPhoneFinal(this.phonePrefix, this.phoneNumber);
-    },
+    required: false, // This will now be stored in the database
   },
   countryPrefix: {
     type: String,
@@ -91,7 +94,7 @@ const userSchema = new Schema({
       return this.phonePrefix && this.phoneNumber;
     },
     default: function () {
-      return getCountryPrefix(this.phonePrefix, this.phoneNumber);
+      return getCountryPrefix(this.phonePrefix, this.phoneNumber); // Get country prefix based on phone number
     },
   },
   serviceRate: {
@@ -108,49 +111,52 @@ const userSchema = new Schema({
     required: true,
   },
   birthDate: {
-    day: {
-      type: Number,
-      required: true,
-    },
-    month: {
-      type: Number,
-      required: true,
-    },
-    year: {
-      type: Number,
-      required: true,
-    },
+    day: { type: Number, required: true },
+    month: { type: Number, required: true },
+    year: { type: Number, required: true },
   },
-  age: {
-    type: Number, // Age field to store calculated age
-    required: false, // This will be set in pre-save hook
-  },
+  age: { type: Number, required: false }, // Age will be calculated
   serviceSpecialist: {
     type: String,
-    enum: servicesEnum,
+    enum: servicesEnum, // Services that the user specializes in
   },
   role: {
     type: String,
     enum: roleEnum,
-    default: "client",
+    default: "client", // Default role is 'client'
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  languages: [languageProficiencySchema],
+  createdAt: { type: Date, default: Date.now },
+  languages: [languageProficiencySchema], // Array of languages with proficiency levels
 });
 
-// Pre-save hook to calculate age
-userSchema.pre("save", function (next) {
-  if (this.isModified("birthDate") || this.isNew) {
-    const age = calculateAge(this.birthDate);
-    this.age = age;
+// Pre-save hook to calculate and store phoneFinal, hash password, encrypt phone number, and calculate age
+userSchema.pre("save", async function (next) {
+  // Calculate phoneFinal before saving
+  if (this.phonePrefix && this.phoneNumber) {
+    this.phoneFinal = getPhoneFinal(this.phonePrefix, this.phoneNumber); // Combine phone prefix and number
   }
-  next();
+
+  if (this.isModified("password") || this.isNew) {
+    try {
+      this.password = await hashPassword(this.password); // Hash the password before saving
+    } catch (err) {
+      return next(err); // Handle errors in password hashing
+    }
+  }
+
+  if (this.isModified("phoneNumber") || this.isNew) {
+    const encrypted = encryptData(this.phoneNumber); // Encrypt phone number before saving
+    this.encryptedPhoneNumber = encrypted.encryptedData;
+  }
+
+  if (this.isModified("birthDate") || this.isNew) {
+    this.age = calculateAge(this.birthDate); // Calculate age based on birth date
+  }
+
+  next(); // Proceed with saving the document
 });
 
-// Include virtuals in JSON output
+// Virtual JSON transformation for custom output (e.g., exclude password)
 userSchema.set("toJSON", {
   transform: function (doc, ret, options) {
     return {
@@ -164,7 +170,7 @@ userSchema.set("toJSON", {
       age: ret.age,
       phonePrefix: ret.phonePrefix,
       phoneNumber: ret.phoneNumber,
-      phoneFinal: ret.phoneFinal,
+      phoneFinal: ret.phoneFinal, // This will be saved now, not calculated
       countryPrefix: ret.countryPrefix,
       role: ret.role,
       serviceRate: ret.serviceRate,
@@ -175,10 +181,10 @@ userSchema.set("toJSON", {
       languages: ret.languages,
     };
   },
-  virtuals: true,
+  virtuals: true, // Ensure virtual fields are included in the output
 });
 
-// Validate languages
+// Validate languages before saving
 userSchema
   .path("languages")
   .validate(validateLanguages, "One or more languages are invalid");

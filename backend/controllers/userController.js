@@ -1,5 +1,4 @@
 const User = require("../models/userModel");
-const { hashPassword } = require("../handlers/handler");
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -43,6 +42,7 @@ exports.createUser = async (req, res) => {
   try {
     const { password, ...userData } = req.body;
 
+    // Verifica se a senha foi fornecida
     if (!password) {
       return res.status(400).json({
         status: "fail",
@@ -50,23 +50,18 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Generate the password hash
-    const hashedPassword = await hashPassword(password);
+    const newUser = new User(userData); // Cria o novo usuário com os dados fornecidos
+    newUser.password = password; // Atribui a senha antes de salvar
 
-    const newUser = await User.create({
-      ...userData,
-      password: hashedPassword,
-    });
+    // Salva o usuário, o que acionará o hook 'pre-save' que realiza o hash da senha
+    await newUser.save();
 
-    // Remove sensitive data from the response
-    const userResponse = newUser.toJSON();
-    // delete userResponse.password;
-
+    // Retorna a resposta de sucesso com o usuário criado
     res.status(201).json({
       status: "success",
       message: "User created successfully",
       data: {
-        user: userResponse,
+        user: newUser, // Dados do usuário criado (já com a senha hashada)
       },
     });
   } catch (err) {
