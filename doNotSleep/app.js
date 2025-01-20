@@ -5,6 +5,9 @@ require("./handlers/handler");
 
 const app = express();
 
+// Trust proxy settings (for Nginx, AWS Load Balancer, etc.)
+app.set("trust proxy", true);
+
 // Middleware
 app.use(cors());
 app.use(express.json());

@@ -9,16 +9,21 @@ require("./handlers/handler");
 
 const app = express();
 
+// Trust proxy settings (for Nginx, AWS Load Balancer, etc.)
+app.set("trust proxy", true);
+
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan("dev"));
-// Connect to database
+
+// Connect to the database
 connectDB();
 
 // Routes
 app.use("/requests", requestRoutes);
 app.use("/api/users", userRoutes);
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
