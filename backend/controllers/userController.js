@@ -1,5 +1,5 @@
 const User = require("../models/userModel");
-const { calculateAge, hashPassword } = require("../handlers/handler");
+const { hashPassword } = require("../handlers/handler");
 
 // Get all users
 exports.getAllUsers = async (req, res) => {

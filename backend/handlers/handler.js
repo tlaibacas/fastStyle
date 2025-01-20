@@ -1,23 +1,19 @@
 const axios = require("axios");
 const cron = require("node-cron");
 const argon2 = require("argon2");
+const crypto = require("crypto");
 require("dotenv").config();
-const {
-  parsePhoneNumberFromString,
-  isValidPhoneNumber,
-} = require("libphonenumber-js");
+const { parsePhoneNumberFromString } = require("libphonenumber-js");
 const Language = require("../models/languagesModel");
 
-// Function to run at specific times
+// # Cron Job # //
 
-// Function to make GET request and log results
+// Executes a GET request to a specified API URL at scheduled intervals
 const startCronJob = async () => {
   const currentTime = new Date();
   console.log(`Cron job executed at ${currentTime.toLocaleTimeString()}`);
 
-  // Obtém a URL da API do arquivo .env
   const apiUrl = process.env.API_URL;
-
   if (!apiUrl) {
     console.error("API URL is not defined in the .env file.");
     return;
@@ -31,34 +27,35 @@ const startCronJob = async () => {
   }
 };
 
+// Schedule the job to run every 10 minutes
 cron.schedule("0,10,20,30,40,50 * * * *", startCronJob);
-// # Phone handlers # //
 
-// Validates phone number using prefix and number
+// # Phone Handlers # //
+
+// Validates if a phone number is correctly formatted and valid
 const validatePhoneNumber = (phonePrefix, phoneNumber) => {
   try {
     const phone = parsePhoneNumberFromString(`${phonePrefix}${phoneNumber}`);
     return phone && phone.isValid();
-  } catch (e) {
+  } catch {
     return false;
   }
 };
 
-// Combines phone prefix and number to get final phone number
+// Combines the phone prefix and number into a single string
 const getPhoneFinal = (phonePrefix, phoneNumber) => {
-  if (phonePrefix && phoneNumber) {
-    return `${phonePrefix}${phoneNumber}`;
-  }
-  return null;
+  return phonePrefix && phoneNumber ? `${phonePrefix}${phoneNumber}` : null;
 };
 
-// Returns country and calling code from phone number
+// Retrieves the country and calling code from a phone number
 const getCountryPrefix = (phonePrefix, phoneNumber) => {
   const phone = parsePhoneNumberFromString(`${phonePrefix}${phoneNumber}`);
   return phone ? `${phone.country} (${phone.countryCallingCode})` : null;
 };
 
-// Validates that the languages are correct by checking the Language model
+// # Language Validation # //
+
+// Ensures all provided language IDs exist in the database
 const validateLanguages = async (languages) => {
   const validLanguages = await Language.find({
     _id: { $in: languages.map((lang) => lang.language) },
@@ -66,14 +63,15 @@ const validateLanguages = async (languages) => {
   return validLanguages.length === languages.length;
 };
 
-// # Birth calculation # //
+// # Age Calculation # //
+
+// Calculates a user's age based on their birthdate
 const calculateAge = (birthDate) => {
   const currentDate = new Date();
   let age = currentDate.getFullYear() - birthDate.year;
   const monthDiff = currentDate.getMonth() + 1 - birthDate.month;
   const dayDiff = currentDate.getDate() - birthDate.day;
 
-  // Adjust age if the birthday hasn't occurred yet this year
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
     age--;
   }
@@ -81,32 +79,64 @@ const calculateAge = (birthDate) => {
   return age;
 };
 
-// Function to generate a hash for a password
+// # Password Hashing # //
+
+// Generates a secure hash for a password using Argon2
 async function hashPassword(password) {
   try {
-    const hash = await argon2.hash(password, {
-      type: argon2.argon2id, // More secure variant (recommended)
-      memoryCost: 2 ** 16, // Memory usage (64 MB)
-      timeCost: 3, // Number of iterations (execution time)
-      parallelism: 1, // Number of threads
+    return await argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 2 ** 16,
+      timeCost: 3,
+      parallelism: 1,
     });
-    return hash;
   } catch (err) {
     console.error("Error generating hash:", err);
     throw err;
   }
 }
 
-// Function to verify if a password matches the hash
+// Verifies if a password matches a given hash
 async function verifyPassword(hash, password) {
   try {
-    // Verify if the password corresponds to the hash
-    return await argon2.verify(hash, password); // Returns true or false
+    return await argon2.verify(hash, password);
   } catch (err) {
     console.error("Error verifying password:", err);
     throw err;
   }
 }
+
+// # Encryption and Decryption # //
+
+// Encryption configuration
+const ALGORITHM = "aes-256-cbc";
+const KEY = Buffer.from(process.env.CRYPTO_KEY, "hex"); // Ensure this is set in .env
+const IV = Buffer.from(process.env.CRYPTO_IV, "hex");
+
+// Encrypts data using AES-256-CBC
+function encryptData(data) {
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, IV);
+  let encrypted = cipher.update(data, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return {
+    iv: IV.toString("hex"),
+    encryptedData: encrypted,
+  };
+}
+
+// Decrypts data using AES-256-CBC
+function decryptData(encryptedObject) {
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    KEY,
+    Buffer.from(encryptedObject.iv, "hex")
+  );
+  let decrypted = decipher.update(encryptedObject.encryptedData, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
+// # Module Exports # //
 
 module.exports = {
   validatePhoneNumber,
@@ -116,4 +146,6 @@ module.exports = {
   calculateAge,
   hashPassword,
   verifyPassword,
+  encryptData,
+  decryptData,
 };
