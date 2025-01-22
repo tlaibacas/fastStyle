@@ -9,13 +9,49 @@ const {
   getCountryPrefix,
   validateLanguages,
   calculateAge,
+  encryptField,
+  encryptMultipleFields,
 } = require("../handlers/handler");
 
 const Schema = mongoose.Schema;
 const sexEnum = ["male", "female", "other"];
 const roleEnum = ["client", "worker", "admin"];
 const proficienciesEnum = ["beginner", "intermediate", "advanced", "native"];
-const servicesEnum = []; // Services enumeration (to be defined)
+const servicesEnum = [
+  "client",
+  "nospecial",
+  "hair",
+  "nails",
+  "massages",
+  "tattoos",
+  "esthetician",
+  "waxing",
+  "facial_cleansing",
+  "eyebrows",
+  "eyelashes",
+  "makeup",
+  "podiatry",
+  "tanning",
+  "spa",
+  "peeling",
+  "lymphatic_drainage",
+  "laser_hair_removal",
+  "barber",
+  "micropigmentation",
+  "facial_harmonization",
+  "hair_treatment",
+  "skincare",
+  "home_haircut",
+  "home_manicure",
+  "home_pedicure",
+  "home_makeup",
+  "home_massage",
+  "home_facial_treatment",
+  "home_waxing",
+  "home_eyelash_extension",
+  "home_hair_coloring",
+];
+// Services enumeration (to be defined)
 
 // Language proficiency schema for languages field
 const languageProficiencySchema = new Schema(
@@ -120,8 +156,9 @@ const userSchema = new Schema({
   },
   age: { type: String, required: false }, // Age will be calculated
   serviceSpecialist: {
-    type: String,
+    type: [String],
     enum: servicesEnum, // Services that the user specializes in
+    default: ["client", "nospecial"],
   },
   role: {
     type: String,
@@ -147,156 +184,31 @@ userSchema.pre("save", async function (next) {
     console.log("Age calculated:", this.age);
   }
   // Crypto operations
-  if (this.isModified("phoneNumber") || this.isNew) {
-    console.log("Encrypting phone number...");
-    const encryptedPhone = encryptData(this.phoneNumber);
-    this.encryptedPhoneNumber = encryptedPhone.encryptedData;
-    this.phoneNumber = encryptedPhone.encryptedData;
-    console.log("Encrypted phone number:", this.encryptedPhoneNumber);
-    console.log("Phone number:", this.phoneNumber);
-  }
-  if (this.isModified("phonePrefix") || this.isNew) {
-    console.log("Encrypting phone prefix...");
-    const encryptedPrefix = encryptData(this.phonePrefix);
-    this.encryptedPhonePrefix = encryptedPrefix.encryptedData;
-    this.phonePrefix = encryptedPrefix.encryptedData;
-    console.log("Encrypted phone prefix:", this.encryptedPhonePrefix);
-    console.log("Phone prefix:", this.PhonePrefix);
-  }
-  if (this.isModified("phoneFinal") || this.isNew) {
-    console.log("Encrypting phone final...");
-    const encryptedPhoneFinal = encryptData(this.phoneFinal);
-    this.encryptedPhoneFinal = encryptedPhoneFinal.encryptedData;
-    this.phoneFinal = encryptedPhoneFinal.encryptedData;
-    console.log("Encrypted phone final:", this.encryptedPhoneFinal);
-    console.log("Phone final:", this.phoneFinal);
-  }
-  if (this.isModified("email") || this.isNew) {
-    console.log("Encrypting email...");
-    const encryptedEmail = encryptData(this.email);
-    this.encryptedEmail = encryptedEmail.encryptedData;
-    this.email = encryptedEmail.encryptedData;
-    console.log("Encrypted email:", this.encryptedEmail);
-    console.log("Email:", this.email);
-  }
-  if (this.isModified("firstName") || this.isNew) {
-    console.log("Encrypting first name...");
-    const encryptedFirstName = encryptData(this.firstName);
-    this.encryptedFirstName = encryptedFirstName.encryptedData;
-    this.firstName = encryptedFirstName.encryptedData;
-    console.log("Encrypted first name:", this.encryptedFirstName);
-    console.log("First name:", this.firstName);
-  }
-  if (this.isModified("lastName") || this.isNew) {
-    console.log("Encrypting last name...");
-    const encryptedLastName = encryptData(this.lastName);
-    this.encryptedLastName = encryptedLastName.encryptedData;
-    this.lastName = encryptedLastName.encryptedData;
-    console.log("Encrypted last name:", this.encryptedLastName);
-    console.log("Last name:", this.lastName);
-  }
-  if (this.isModified("sex") || this.isNew) {
-    console.log("Encrypting sex...");
-    const encryptedSex = encryptData(this.sex);
-    this.encryptedSex = encryptedSex.encrypted;
-    this.sex = encryptedSex.encryptedData;
-    console.log("Encrypted sex:", this.encryptedSex);
-    console.log("sex:", this.sex);
-  }
-  if (this.isModified("role") || this.isNew) {
-    console.log("Encrypting role...");
-    const encryptedRole = encryptData(this.role);
-    this.encryptedRole = encryptedRole.encryptedData;
-    this.role = encryptedRole.encryptedData;
-    console.log("Encrypted role:", this.encryptedRole);
-    console.log("Role:", this.role);
-  }
-  // if (this.isModified("serviceSpecialist") || this.isNew) {
-  //   console.log("Encrypting service specialist...");
-  //   const encryptedServiceSpecialist = encryptData(this.serviceSpecialist);
-  //   this.encryptedServiceSpecialist = encryptedServiceSpecialist.encryptedData;
-  //   this.serviceSpecialist = encryptedServiceSpecialist.encryptedData;
-  //   console.log(
-  //     "Encrypted service specialist:",
-  //     this.encryptedServiceSpecialist
-  //   );
-  //   console.log("Service specialist:", this.serviceSpecialist);
-  // }
+  const encryptedFields = encryptMultipleFields([
+    { name: "phoneNumber", value: this.phoneNumber },
+    { name: "phonePrefix", value: this.phonePrefix },
+    { name: "phoneFinal", value: this.phoneFinal },
+    { name: "email", value: this.email },
+    { name: "firstName", value: this.firstName },
+    { name: "lastName", value: this.lastName },
+    { name: "sex", value: this.sex },
+    { name: "role", value: this.role },
+    { name: "serviceSpecialist", value: this.serviceSpecialist },
+    { name: "birthDate", value: this.birthDate },
+    { name: "age", value: this.age },
+    { name: "serviceRate", value: this.serviceRate },
+    { name: "rank", value: this.rank },
+    { name: "languages", value: this.languages },
+    { name: "username", value: this.username },
+    { name: "countryPrefix", value: this.countryPrefix },
+  ]);
 
-  if (this.isModified("birthDate.day") || this.isNew) {
-    console.log("Encrypting birth date day...");
-    const encryptedBirthDateDay = encryptData(this.birthDate.day);
-    this.encryptedBirthDateDay = encryptedBirthDateDay.encryptedData;
-    this.birthDate.day = encryptedBirthDateDay.encryptedData;
-    console.log("Encrypted birth date day:", this.encryptedBirthDateDay);
-    console.log("Birth date day:", this.birthDate.day);
-  }
-  if (this.isModified("birthDate.month") || this.isNew) {
-    console.log("Encrypting birth date month...");
-    const encryptedBirthDateMonth = encryptData(this.birthDate.month);
-    this.encryptedBirthDateMonth = encryptedBirthDateMonth.encryptedData;
-    this.birthDate.month = encryptedBirthDateMonth.encryptedData;
-    console.log("Encrypted birth date month:", this.encryptedBirthDateMonth);
-    console.log("Birth date month:", this.birthDate.month);
-  }
-  if (this.isModified("birthDate.year") || this.isNew) {
-    console.log("Encrypting birth date year...");
-    const encryptedBirthDateYear = encryptData(this.birthDate.year);
-    this.encryptedBirthDateYear = encryptedBirthDateYear.encryptedData;
-    this.birthDate.year = encryptedBirthDateYear.encryptedData;
-    console.log("Encrypted birth date year:", this.encryptedBirthDateYear);
-    console.log("Birth date year:", this.birthDate.year);
-  }
-  if (this.isModified("age") || this.isNew) {
-    console.log("Encrypting age...");
-    const encryptedAge = encryptData(this.age);
-    this.encryptedAge = encryptedAge.encryptedData;
-    this.age = encryptedAge.encryptedData;
-    console.log("Encrypted age:", this.encryptedAge);
-    console.log("Age:", this.age);
-  }
-  if (this.isModified("serviceRate") || this.isNew) {
-    console.log("Encrypting service rate...");
-    const encryptedServiceRate = encryptData(this.serviceRate);
-    this.encryptedServiceRate = encryptedServiceRate.encryptedData;
-    this.serviceRate = encryptedServiceRate.encryptedData;
-    console.log("Encrypted service rate:", this.encryptedServiceRate);
-    console.log("Service rate:", this.serviceRate);
-  }
-  if (this.isModified("rank") || this.isNew) {
-    console.log("Encrypting rank...");
-    const encryptedRank = encryptData(this.rank);
-    this.encryptedRank = encryptedRank.encryptedData;
-    this.rank = encryptedRank.encryptedData;
-    console.log("Encrypted rank:", this.encryptedRank);
-    console.log("Rank:", this.rank);
-  }
-  if (this.isModified("languages") || this.isNew) {
-    console.log("Encrypting languages...");
-    this.languages.forEach((lang, index) => {
-      if (lang.proficiency) {
-        const encryptedProficiency = encryptData(lang.proficiency);
-        this.languages[index].encryptedProficiency =
-          encryptedProficiency.encryptedData;
-        this.languages[index].proficiency = encryptedProficiency.encryptedData;
-        console.log(
-          `Encrypted proficiency for language ${lang.language}:`,
-          encryptedProficiency.encryptedData
-        );
-      }
-    });
-    console.log("Languages array with encrypted proficiency:", this.languages);
-  }
-
-  if (this.isModified("username") || this.isNew) {
-    console.log("Encrypting username...");
-    const encryptedUsername = encryptData(this.username);
-    this.encryptedUsername = encryptedUsername.encryptedData;
-    this.username = encryptedUsername.encryptedData;
-    console.log("Encrypted username:", this.encryptedUsername);
-    console.log("Username:", this.username);
-  }
-
+  // Update fields with encrypted data
+  Object.keys(encryptedFields).forEach((field) => {
+    if (encryptedFields[field]) {
+      this[field] = encryptedFields[field];
+    }
+  });
   // Hash password if modified or new
   if (this.isModified("password") || this.isNew) {
     console.log("Hashing password...");

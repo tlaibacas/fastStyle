@@ -59,6 +59,48 @@ function decryptData(encryptedObject) {
   return decrypted;
 }
 
+// Encrypt data using AES-256-CBC
+const encryptField = (fieldName, fieldValue) => {
+  if (fieldValue) {
+    if (fieldName === "serviceSpecialist" && Array.isArray(fieldValue)) {
+      const stringifiedValue = JSON.stringify(fieldValue);
+      return encryptData(stringifiedValue).encryptedData;
+    }
+
+    if (Array.isArray(fieldValue)) {
+      fieldValue = fieldValue.map((item) => {
+        if (item.proficiency) {
+          item.encryptedProficiency = encryptData(
+            item.proficiency
+          ).encryptedData;
+          item.proficiency = item.encryptedProficiency;
+        }
+        return item;
+      });
+    }
+
+    if (typeof fieldValue === "object" && !Array.isArray(fieldValue)) {
+      Object.keys(fieldValue).forEach((key) => {
+        fieldValue[key] = encryptField(`${fieldName}.${key}`, fieldValue[key]);
+      });
+    } else {
+      const stringifiedValue = JSON.stringify(fieldValue);
+      return encryptData(stringifiedValue).encryptedData;
+    }
+
+    return fieldValue;
+  }
+  return null;
+};
+
+const encryptMultipleFields = (fields) => {
+  const encryptedFields = {};
+  fields.forEach(({ name, value }) => {
+    encryptedFields[name] = encryptField(name, value);
+  });
+  return encryptedFields;
+};
+
 // Validates a phone number using its prefix and number
 const validatePhoneNumber = (phonePrefix, phoneNumber) => {
   try {
@@ -89,12 +131,12 @@ const validateLanguages = async (languages) => {
 };
 
 // Calculates the age based on birth date
+
 const calculateAge = (birthDate) => {
   const currentDate = new Date(); // Get current date
   let age = currentDate.getFullYear() - birthDate.year;
   const monthDiff = currentDate.getMonth() + 1 - birthDate.month;
   const dayDiff = currentDate.getDate() - birthDate.day;
-
   // If birth month/day has not passed yet, subtract one year from age
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
     age--;
@@ -114,4 +156,6 @@ module.exports = {
   getCountryPrefix,
   validateLanguages,
   calculateAge,
+  encryptField,
+  encryptMultipleFields,
 };
