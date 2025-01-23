@@ -51,7 +51,6 @@ const servicesEnum = [
   "home_eyelash_extension",
   "home_hair_coloring",
 ];
-// Services enumeration (to be defined)
 
 // Language proficiency schema for languages field
 const languageProficiencySchema = new Schema(
