@@ -2,14 +2,11 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const {
   hashPassword,
-  encryptData,
-  decryptData, // Added for decryption if needed
   validatePhoneNumber,
   getPhoneFinal,
   getCountryPrefix,
   validateLanguages,
   calculateAge,
-  encryptField,
   encryptMultipleFields,
 } = require("../handlers/handler");
 
@@ -32,7 +29,6 @@ const servicesEnum = [
   "makeup",
   "podiatry",
   "tanning",
-  "spa",
   "peeling",
   "lymphatic_drainage",
   "laser_hair_removal",
@@ -41,15 +37,12 @@ const servicesEnum = [
   "facial_harmonization",
   "hair_treatment",
   "skincare",
-  "home_haircut",
-  "home_manicure",
-  "home_pedicure",
-  "home_makeup",
-  "home_massage",
-  "home_facial_treatment",
-  "home_waxing",
-  "home_eyelash_extension",
-  "home_hair_coloring",
+  "haircut",
+  "manicure",
+  "pedicure",
+  "facial_treatment",
+  "eyelash_extension",
+  "hair_coloring",
 ];
 
 // Language proficiency schema for languages field
