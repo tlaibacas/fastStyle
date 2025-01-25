@@ -47,18 +47,6 @@ function encryptData(data) {
   };
 }
 
-// Function to decrypt encrypted data using AES-256-CBC
-function decryptData(encryptedObject) {
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM,
-    KEY,
-    Buffer.from(encryptedObject.iv, "hex")
-  );
-  let decrypted = decipher.update(encryptedObject.encryptedData, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
-}
-
 // Encrypt data using AES-256-CBC
 const encryptField = (fieldName, fieldValue) => {
   if (fieldValue) {
@@ -99,6 +87,78 @@ const encryptMultipleFields = (fields) => {
     encryptedFields[name] = encryptField(name, value);
   });
   return encryptedFields;
+};
+
+// Function to decrypt encrypted data using AES-256-CBC
+const decryptData = (encryptedObject) => {
+  if (!encryptedObject) return null;
+
+  try {
+    const decipher = crypto.createDecipheriv(
+      ALGORITHM,
+      KEY,
+      Buffer.from(encryptedObject.iv, "hex")
+    );
+    let decrypted = decipher.update(
+      encryptedObject.encryptedData,
+      "hex",
+      "utf8"
+    );
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    console.error("Error decrypting data:", error.message);
+    return encryptedObject; // Retorna o valor original em caso de erro
+  }
+};
+
+// Função para descriptografar um campo
+const decryptField = (fieldName, fieldValue) => {
+  if (fieldValue) {
+    if (fieldName === "serviceSpecialist" && Array.isArray(fieldValue)) {
+      const decryptedData = decryptData({
+        iv: process.env.CRYPTO_IV,
+        encryptedData: fieldValue,
+      });
+      return JSON.parse(decryptedData); // Retorna o objeto original depois de parseado
+    }
+
+    if (Array.isArray(fieldValue)) {
+      fieldValue = fieldValue.map((item) => {
+        if (item.encryptedProficiency) {
+          item.proficiency = decryptData({
+            iv: process.env.CRYPTO_IV,
+            encryptedData: item.encryptedProficiency,
+          });
+        }
+        return item;
+      });
+    }
+
+    if (typeof fieldValue === "object" && !Array.isArray(fieldValue)) {
+      Object.keys(fieldValue).forEach((key) => {
+        fieldValue[key] = decryptField(`${fieldName}.${key}`, fieldValue[key]);
+      });
+    } else {
+      const decryptedData = decryptData({
+        iv: process.env.CRYPTO_IV,
+        encryptedData: fieldValue,
+      });
+      return decryptedData; // Retorna o valor descriptografado
+    }
+
+    return fieldValue;
+  }
+  return null;
+};
+
+// Função para descriptografar múltiplos campos
+const decryptMultipleFields = (fields) => {
+  const decryptedFields = {};
+  fields.forEach(({ name, value }) => {
+    decryptedFields[name] = decryptField(name, value);
+  });
+  return decryptedFields;
 };
 
 // Validates a phone number using its prefix and number
@@ -158,4 +218,6 @@ module.exports = {
   calculateAge,
   encryptField,
   encryptMultipleFields,
+  decryptMultipleFields,
+  decryptField,
 };
