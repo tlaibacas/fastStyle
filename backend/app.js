@@ -4,6 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/users");
+const loginRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(morgan("dev"));
 connectDB();
 
 // Routes
+app.use("/login", loginRoutes);
 app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
