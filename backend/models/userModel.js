@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const authService = require("../services/authService");
 const validator = require("validator");
 
+const roleEnum = ["client", "worker", "admin"];
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -37,6 +39,11 @@ const userSchema = new mongoose.Schema({
       message: (props) =>
         `${props.value} is not a valid password! Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character.`,
     },
+  },
+  role: {
+    type: String,
+    enum: roleEnum,
+    default: "client",
   },
   createdAt: {
     type: Date,
