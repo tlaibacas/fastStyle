@@ -1,5 +1,5 @@
 const jwtHelper = require("../utils/jwtHelper");
-const User = require("../models/User"); // Assuming you have a User model
+const User = require("../models/User");
 const argon2 = require("argon2");
 
 const login = async (req, res) => {
