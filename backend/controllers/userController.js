@@ -40,6 +40,17 @@ exports.getUser = async (req, res) => {
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
+    const { email, username } = req.body;
+
+    // Check if email or username already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Email or username already exists",
+      });
+    }
+
     const newUser = await User.create(req.body);
     res.status(201).json({
       status: "success",
