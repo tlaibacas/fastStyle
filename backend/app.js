@@ -22,7 +22,7 @@ connectDB();
 
 // Routes
 app.use("/requests", requestRoutes);
-app.use("/api/users", userRoutes);
+app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
