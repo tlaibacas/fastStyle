@@ -3,15 +3,19 @@ const User = require("../models/userModel");
 const argon2 = require("argon2");
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body; // Changed from email to identifier
 
   try {
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email or username
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
     if (!user) {
       return res
         .status(401)
-        .json({ message: "Authentication failed. User not found." });
+        .json({
+          message: "Authentication failed. Invalid username or password.",
+        });
     }
 
     // Check if password matches
@@ -19,7 +23,9 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res
         .status(401)
-        .json({ message: "Authentication failed. Wrong password." });
+        .json({
+          message: "Authentication failed. Invalid username or password.",
+        });
     }
 
     // Generate token
