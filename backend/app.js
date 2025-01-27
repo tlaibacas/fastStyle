@@ -4,7 +4,6 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/users");
-const requestRoutes = require("./routes/noSleep");
 require("./handlers/handler");
 
 const app = express();
