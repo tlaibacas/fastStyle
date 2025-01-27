@@ -20,7 +20,6 @@ app.use(morgan("dev"));
 connectDB();
 
 // Routes
-app.use("/requests", requestRoutes);
 app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
