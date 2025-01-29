@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const authService = require("../services/authService");
 const validator = require("validator");
+const cryptoHelper = require("../utils/cryptoHelper");
 
 const roleEnum = ["client", "worker", "admin"];
 
@@ -55,13 +56,43 @@ userSchema.pre("save", async function (next) {
   if (this.isModified("password") || this.isNew) {
     try {
       this.password = await authService.hashPassword(this.password);
-      next();
+      console.log("Password hashed:", this.password);
     } catch (err) {
-      next(err);
+      return next(err);
     }
-  } else {
-    next();
   }
+
+  if (this.isModified("username") || this.isNew) {
+    try {
+      const encryptedUsername = await cryptoHelper.encrypt(this.username);
+      this.username = encryptedUsername.content;
+      console.log("Username encrypted and saved:", this.username);
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  if (this.isModified("email") || this.isNew) {
+    try {
+      const encryptedEmail = await cryptoHelper.encrypt(this.email);
+      this.email = encryptedEmail.content;
+      console.log("Email encrypted and saved:", this.email);
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  if (this.isModified("role") || this.isNew) {
+    try {
+      const encryptedRole = await cryptoHelper.encrypt(this.role);
+      this.role = encryptedRole.content;
+      console.log("Role encrypted and saved:", this.role);
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  next();
 });
 
 const User = mongoose.model("User", userSchema);
