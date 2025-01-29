@@ -16,7 +16,7 @@ async function generateToken(userId, expiresIn = "30d") {
       userId: user._id,
     };
     const token = jwt.sign(payload, secretKey, { expiresIn });
-    console.log("Token generated:", token);
+
     return token;
   } catch (error) {
     throw new Error("Error generating token: " + error.message);
