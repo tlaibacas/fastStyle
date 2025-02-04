@@ -92,10 +92,15 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-//Hide password from user object
+//Hide sensitive data from user object
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
+  delete user.username;
+  delete user.email;
+  delete user.createdAt;
+  delete user.role;
+  delete user.__v;
   return user;
 };
 
