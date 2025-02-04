@@ -3,8 +3,6 @@ const authService = require("../services/authService");
 const validator = require("validator");
 const cryptoHelper = require("../utils/cryptoHelper");
 
-const roleEnum = ["client", "worker", "admin"];
-
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -19,7 +17,7 @@ const userSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function (v) {
-        return validator.isEmail(v);
+        return validator.isEmail(cryptoHelper.decrypt(v));
       },
       message: (props) => `${props.value} is not a valid email!`,
     },
@@ -43,8 +41,14 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: roleEnum,
-    default: "client",
+    validate: {
+      validator: function (v) {
+        const decrypted = cryptoHelper.decrypt(v);
+        return ["client", "worker", "admin"].includes(decrypted);
+      },
+      message: "Invalid role",
+    },
+    default: cryptoHelper.encrypt("client"),
   },
   createdAt: {
     type: Date,
@@ -52,58 +56,38 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-//Encrypt sensitive data before saving
+// Encrypt sensitive data before saving to database
 userSchema.pre("save", async function (next) {
   if (this.isModified("password") || this.isNew) {
-    try {
-      this.password = await authService.hashPassword(this.password);
-    } catch (err) {
-      return next(err);
-    }
+    this.password = await authService.hashPassword(this.password);
   }
 
   if (this.isModified("username") || this.isNew) {
-    try {
-      const encryptedUsername = await cryptoHelper.encrypt(this.username);
-      this.username = encryptedUsername.content;
-    } catch (err) {
-      return next(err);
-    }
+    this.username = cryptoHelper.encrypt(this.username);
   }
 
   if (this.isModified("email") || this.isNew) {
-    try {
-      const encryptedEmail = await cryptoHelper.encrypt(this.email);
-      this.email = encryptedEmail.content;
-    } catch (err) {
-      return next(err);
-    }
+    this.email = cryptoHelper.encrypt(this.email);
   }
 
   if (this.isModified("role") || this.isNew) {
-    try {
-      const encryptedRole = await cryptoHelper.encrypt(this.role);
-      this.role = encryptedRole.content;
-    } catch (err) {
-      return next(err);
+    if (!["client", "worker", "admin"].includes(this.role)) {
+      return next(new Error("Invalid role"));
     }
+    this.role = cryptoHelper.encrypt(this.role);
   }
 
   next();
 });
-
-//Hide sensitive data from user object
+// Hide sensitive data from response
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
-  delete user.username;
-  delete user.email;
-  delete user.createdAt;
-  delete user.role;
   delete user.__v;
+  delete user.email;
+  delete user.username;
   return user;
 };
 
 const User = mongoose.model("User", userSchema);
-
 module.exports = User;
