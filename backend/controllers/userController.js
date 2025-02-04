@@ -54,9 +54,7 @@ exports.createUser = async (req, res) => {
     const newUser = await User.create(req.body);
     res.status(201).json({
       status: "success",
-      data: {
-        user: newUser,
-      },
+      user: newUser,
     });
   } catch (err) {
     res.status(400).json({
