@@ -52,11 +52,11 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+//Encrypt sensitive data before saving
 userSchema.pre("save", async function (next) {
   if (this.isModified("password") || this.isNew) {
     try {
       this.password = await authService.hashPassword(this.password);
-      console.log("Password hashed:", this.password);
     } catch (err) {
       return next(err);
     }
@@ -66,7 +66,6 @@ userSchema.pre("save", async function (next) {
     try {
       const encryptedUsername = await cryptoHelper.encrypt(this.username);
       this.username = encryptedUsername.content;
-      console.log("Username encrypted and saved:", this.username);
     } catch (err) {
       return next(err);
     }
@@ -76,7 +75,6 @@ userSchema.pre("save", async function (next) {
     try {
       const encryptedEmail = await cryptoHelper.encrypt(this.email);
       this.email = encryptedEmail.content;
-      console.log("Email encrypted and saved:", this.email);
     } catch (err) {
       return next(err);
     }
@@ -86,7 +84,6 @@ userSchema.pre("save", async function (next) {
     try {
       const encryptedRole = await cryptoHelper.encrypt(this.role);
       this.role = encryptedRole.content;
-      console.log("Role encrypted and saved:", this.role);
     } catch (err) {
       return next(err);
     }
@@ -94,6 +91,13 @@ userSchema.pre("save", async function (next) {
 
   next();
 });
+
+//Hide password from user object
+userSchema.methods.toJSON = function () {
+  const user = this.toObject();
+  delete user.password;
+  return user;
+};
 
 const User = mongoose.model("User", userSchema);
 
