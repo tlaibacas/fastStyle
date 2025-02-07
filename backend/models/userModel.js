@@ -1,93 +1,134 @@
 const mongoose = require("mongoose");
-const authService = require("../services/authService");
-const validator = require("validator");
 const cryptoHelper = require("../utils/cryptoHelper");
+const passwordHelper = require("../utils/passwordHelper");
+const crypto = require("crypto");
+const validator = require("validator");
 
-const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    validate: {
-      validator: function (v) {
-        return validator.isEmail(cryptoHelper.decrypt(v));
+// Function to generate a deterministic hash (used to ensure uniqueness)
+function getDeterministicHash(text) {
+  const secret = process.env.HASH_SECRET || "default-secret";
+  return crypto.createHmac("sha256", secret).update(text).digest("hex");
+}
+
+const UserSchema = new mongoose.Schema(
+  {
+    // Username field
+    username: {
+      type: String,
+      required: [true, "Username is required"],
+      set: function (username) {
+        if (!username) return username;
+        this.usernameHash = getDeterministicHash(username);
+        const encrypted = cryptoHelper.encrypt(username);
+        return JSON.stringify(encrypted);
       },
-      message: (props) => `${props.value} is not a valid email!`,
+      get: function (encryptedValue) {
+        if (!encryptedValue) return encryptedValue;
+        try {
+          const parsed = JSON.parse(encryptedValue);
+          return cryptoHelper.decrypt(parsed);
+        } catch (error) {
+          return encryptedValue;
+        }
+      },
+    },
+    usernameHash: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+
+    // Encrypted email field (this replaces `email`)
+    encryptedEmail: {
+      type: String,
+      required: [true, "Encrypted email is required"],
+    },
+
+    // Hash for lookup
+    emailHash: {
+      type: String,
+      unique: true,
+      required: [true, "Email hash is required"],
+    },
+
+    // Password field
+    password: {
+      type: String,
+      required: true,
+      validate: {
+        validator: function (password) {
+          return validator.isStrongPassword(password, {
+            minLength: 8,
+            minLowercase: 1,
+            minUppercase: 1,
+            minNumbers: 1,
+            minSymbols: 1,
+          });
+        },
+        message: (props) => `${props.value} is not a valid password!`,
+      },
+    },
+
+    // Role field
+    role: {
+      type: String,
+      required: true,
+      set: function (role) {
+        if (!role) return role;
+        const encrypted = cryptoHelper.encrypt(role);
+        return JSON.stringify(encrypted);
+      },
+      get: function (encryptedValue) {
+        if (!encryptedValue) return encryptedValue;
+        try {
+          const parsed = JSON.parse(encryptedValue);
+          return cryptoHelper.decrypt(parsed);
+        } catch (error) {
+          return encryptedValue;
+        }
+      },
     },
   },
-  password: {
-    type: String,
-    required: true,
-    validate: {
-      validator: function (v) {
-        return validator.isStrongPassword(v, {
-          minLength: 8,
-          minLowercase: 1,
-          minUppercase: 1,
-          minNumbers: 1,
-          minSymbols: 1,
-        });
-      },
-      message: (props) =>
-        `${props.value} is not a valid password! Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character.`,
-    },
-  },
-  role: {
-    type: String,
-    validate: {
-      validator: function (v) {
-        const decrypted = cryptoHelper.decrypt(v);
-        return ["client", "worker", "admin"].includes(decrypted);
-      },
-      message: "Invalid role",
-    },
-    default: cryptoHelper.encrypt("client"),
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-// Encrypt sensitive data before saving to database
-userSchema.pre("save", async function (next) {
-  if (this.isModified("password") || this.isNew) {
-    this.password = await authService.hashPassword(this.password);
+  {
+    toJSON: { getters: true },
+    toObject: { getters: true },
   }
+);
 
-  if (this.isModified("username") || this.isNew) {
-    this.username = cryptoHelper.encrypt(this.username);
-  }
-
-  if (this.isModified("email") || this.isNew) {
-    this.email = cryptoHelper.encrypt(this.email);
-  }
-
-  if (this.isModified("role") || this.isNew) {
-    if (!["client", "worker", "admin"].includes(this.role)) {
-      return next(new Error("Invalid role"));
+// 🔹 Virtual field to handle email (not stored in DB)
+UserSchema.virtual("email")
+  .get(function () {
+    try {
+      const parsed = JSON.parse(this.encryptedEmail);
+      return cryptoHelper.decrypt(parsed);
+    } catch (error) {
+      return this.encryptedEmail;
     }
-    this.role = cryptoHelper.encrypt(this.role);
-  }
+  })
+  .set(function (email) {
+    if (!validator.isEmail(email)) {
+      throw new mongoose.Error.ValidationError(
+        new mongoose.Error.ValidatorError({
+          message: `${email} is not a valid email address!`,
+          path: "email",
+          value: email,
+        })
+      );
+    }
+    this.emailHash = getDeterministicHash(email);
+    this.encryptedEmail = JSON.stringify(cryptoHelper.encrypt(email));
+  });
 
+// 🔹 Encrypt password before saving
+UserSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
+    try {
+      this.password = await passwordHelper.hashPassword(this.password);
+    } catch (error) {
+      return next(error);
+    }
+  }
   next();
 });
-// Hide sensitive data from response
-userSchema.methods.toJSON = function () {
-  const user = this.toObject();
-  delete user.password;
-  delete user.__v;
-  delete user.email;
-  delete user.username;
-  return user;
-};
 
-const User = mongoose.model("User", userSchema);
-module.exports = User;
+module.exports = mongoose.model("User", UserSchema);
