@@ -18,7 +18,6 @@ exports.getAllUsers = async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("Error fetching users:", err);
     res.status(400).json({
       status: "fail",
       message: "Error fetching users",
@@ -55,7 +54,6 @@ exports.createUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error creating user:", err);
     res.status(400).json({
       status: "fail",
       message: err.message,
@@ -92,7 +90,6 @@ exports.updateUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error updating user:", err);
     res.status(400).json({
       status: "fail",
       message: err.message,
@@ -125,7 +122,6 @@ exports.getUserById = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error fetching user by ID:", err);
     res.status(400).json({
       status: "fail",
       message: "Error fetching user",
@@ -150,7 +146,6 @@ exports.deleteUser = async (req, res) => {
       message: "User deleted successfully",
     });
   } catch (err) {
-    console.error("Error deleting user:", err);
     res.status(400).json({
       status: "fail",
       message: err.message,
