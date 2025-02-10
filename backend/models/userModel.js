@@ -4,7 +4,7 @@ const passwordHelper = require("../utils/passwordHelper");
 const crypto = require("crypto");
 const validator = require("validator");
 
-// Helper para gerar hash (lookup)
+// Lookup hash for encrypted fields
 function generateLookupHash(text) {
   if (!process.env.HASH_KEY) throw new Error("HASH_KEY not set");
   return crypto
@@ -13,27 +13,24 @@ function generateLookupHash(text) {
     .digest("hex");
 }
 
-// Schema para campos criptografados
+// Schema for encrypted fields
 const EncryptedFieldSchema = new mongoose.Schema(
   {
     iv: { type: String, required: true },
     content: { type: String, required: true },
   },
   { _id: false }
-); // Evita que seja criado um _id para o subdocumento
+);
 
-// Schema do usuário
 const UserSchema = new mongoose.Schema(
   {
     username: {
       type: EncryptedFieldSchema,
       unique: true,
       set: function (value) {
-        // Se for uma string (ou seja, ainda não criptografado)
         if (typeof value === "string") {
-          // Gera a hash do valor _plaintext_ para lookup
           this.usernameHash = generateLookupHash(value);
-          // Retorna o valor criptografado
+
           return cryptoHelper.encrypt(value);
         }
         return value;
@@ -74,8 +71,7 @@ const UserSchema = new mongoose.Schema(
     },
     role: {
       type: EncryptedFieldSchema,
-      // Removemos o enum (pois o valor armazenado é o objeto criptografado)
-      // e usamos o setter para validar e criptografar o valor.
+
       default: function () {
         return cryptoHelper.encrypt("client");
       },
@@ -105,7 +101,7 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// Virtuals para retornar os valores decriptados
+// Virtuals to get decrypted values
 UserSchema.virtual("decryptedUsername").get(function () {
   return cryptoHelper.decrypt(this.username);
 });
@@ -116,7 +112,6 @@ UserSchema.virtual("decryptedRole").get(function () {
   return cryptoHelper.decrypt(this.role);
 });
 
-// Middleware pre-save para realizar o hash da senha
 UserSchema.pre("save", async function (next) {
   try {
     if (this.isModified("password")) {
