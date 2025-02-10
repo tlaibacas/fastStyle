@@ -4,32 +4,53 @@ const passwordHelper = require("../utils/passwordHelper");
 const crypto = require("crypto");
 const validator = require("validator");
 
-// Function to generate a deterministic hash (used to ensure uniqueness)
-function getDeterministicHash(text) {
-  const secret = process.env.HASH_SECRET || "default-secret";
-  return crypto.createHmac("sha256", secret).update(text).digest("hex");
+// Helper para gerar hash (lookup)
+function generateLookupHash(text) {
+  if (!process.env.HASH_KEY) throw new Error("HASH_KEY not set");
+  return crypto
+    .createHmac("sha256", process.env.HASH_KEY)
+    .update(text)
+    .digest("hex");
 }
 
+// Schema para campos criptografados
+const EncryptedFieldSchema = new mongoose.Schema(
+  {
+    iv: { type: String, required: true },
+    content: { type: String, required: true },
+  },
+  { _id: false }
+); // Evita que seja criado um _id para o subdocumento
+
+// Schema do usuário
 const UserSchema = new mongoose.Schema(
   {
-    // Username field
     username: {
-      type: String,
-      required: [true, "Username is required"],
-      set: function (username) {
-        if (!username) return username;
-        this.usernameHash = getDeterministicHash(username);
-        const encrypted = cryptoHelper.encrypt(username);
-        return JSON.stringify(encrypted);
-      },
-      get: function (encryptedValue) {
-        if (!encryptedValue) return encryptedValue;
-        try {
-          const parsed = JSON.parse(encryptedValue);
-          return cryptoHelper.decrypt(parsed);
-        } catch (error) {
-          return encryptedValue;
+      type: EncryptedFieldSchema,
+      unique: true,
+      set: function (value) {
+        // Se for uma string (ou seja, ainda não criptografado)
+        if (typeof value === "string") {
+          // Gera a hash do valor _plaintext_ para lookup
+          this.usernameHash = generateLookupHash(value);
+          // Retorna o valor criptografado
+          return cryptoHelper.encrypt(value);
         }
+        return value;
+      },
+    },
+    email: {
+      type: EncryptedFieldSchema,
+      unique: true,
+      set: function (value) {
+        if (typeof value === "string") {
+          if (!validator.isEmail(value)) {
+            throw new Error("Formato de email inválido");
+          }
+          this.emailHash = generateLookupHash(value);
+          return cryptoHelper.encrypt(value);
+        }
+        return value;
       },
     },
     usernameHash: {
@@ -37,98 +58,74 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
-
-    // Encrypted email field (this replaces `email`)
-    encryptedEmail: {
-      type: String,
-      required: [true, "Encrypted email is required"],
-    },
-
-    // Hash for lookup
     emailHash: {
       type: String,
       unique: true,
-      required: [true, "Email hash is required"],
+      required: true,
     },
-
-    // Password field
     password: {
       type: String,
       required: true,
       validate: {
-        validator: function (password) {
-          return validator.isStrongPassword(password, {
-            minLength: 8,
-            minLowercase: 1,
-            minUppercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-          });
-        },
-        message: (props) => `${props.value} is not a valid password!`,
+        validator: validator.isStrongPassword,
+        message:
+          "PASSWORD_TOO_WEAK: Password must have at least 8 characters, 1 lowercase letter, 1 uppercase letter, 1 number and 1 symbol",
       },
     },
-
-    // Role field
     role: {
-      type: String,
-      required: true,
-      set: function (role) {
-        if (!role) return role;
-        const encrypted = cryptoHelper.encrypt(role);
-        return JSON.stringify(encrypted);
+      type: EncryptedFieldSchema,
+      // Removemos o enum (pois o valor armazenado é o objeto criptografado)
+      // e usamos o setter para validar e criptografar o valor.
+      default: function () {
+        return cryptoHelper.encrypt("client");
       },
-      get: function (encryptedValue) {
-        if (!encryptedValue) return encryptedValue;
-        try {
-          const parsed = JSON.parse(encryptedValue);
-          return cryptoHelper.decrypt(parsed);
-        } catch (error) {
-          return encryptedValue;
+      set: function (value) {
+        if (typeof value === "string") {
+          if (!["client", "worker", "admin"].includes(value)) {
+            throw new Error("Invalid role");
+          }
+          return cryptoHelper.encrypt(value);
         }
+        return value;
       },
     },
   },
   {
-    toJSON: { getters: true },
-    toObject: { getters: true },
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (doc, ret) => {
+        delete ret.password;
+        delete ret.__v;
+        delete ret.usernameHash;
+        delete ret.emailHash;
+        return ret;
+      },
+    },
   }
 );
 
-// 🔹 Virtual field to handle email (not stored in DB)
-UserSchema.virtual("email")
-  .get(function () {
-    try {
-      const parsed = JSON.parse(this.encryptedEmail);
-      return cryptoHelper.decrypt(parsed);
-    } catch (error) {
-      return this.encryptedEmail;
-    }
-  })
-  .set(function (email) {
-    if (!validator.isEmail(email)) {
-      throw new mongoose.Error.ValidationError(
-        new mongoose.Error.ValidatorError({
-          message: `${email} is not a valid email address!`,
-          path: "email",
-          value: email,
-        })
-      );
-    }
-    this.emailHash = getDeterministicHash(email);
-    this.encryptedEmail = JSON.stringify(cryptoHelper.encrypt(email));
-  });
+// Virtuals para retornar os valores decriptados
+UserSchema.virtual("decryptedUsername").get(function () {
+  return cryptoHelper.decrypt(this.username);
+});
+UserSchema.virtual("decryptedEmail").get(function () {
+  return cryptoHelper.decrypt(this.email);
+});
+UserSchema.virtual("decryptedRole").get(function () {
+  return cryptoHelper.decrypt(this.role);
+});
 
-// 🔹 Encrypt password before saving
+// Middleware pre-save para realizar o hash da senha
 UserSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    try {
+  try {
+    if (this.isModified("password")) {
       this.password = await passwordHelper.hashPassword(this.password);
-    } catch (error) {
-      return next(error);
     }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
 module.exports = mongoose.model("User", UserSchema);
