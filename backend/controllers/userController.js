@@ -11,9 +11,9 @@ exports.getAllUsers = async (req, res) => {
       results: users.length,
       users: users.map((user) => ({
         _id: user._id,
-        username: decrypt(user.username), // Descriptografa o username
-        email: decrypt(user.email), // Descriptografa o email
-        role: decrypt(user.role), // Descriptografa o role
+        username: decrypt(user.username),
+        email: decrypt(user.email),
+        role: decrypt(user.role),
         createdAt: user.createdAt,
       })),
     });
