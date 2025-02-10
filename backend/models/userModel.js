@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema(
       set: function (value) {
         if (typeof value === "string") {
           if (!validator.isEmail(value)) {
-            throw new Error("Formato de email inválido");
+            throw new Error("Invalid email format");
           }
           this.emailHash = generateLookupHash(value);
           return cryptoHelper.encrypt(value);
