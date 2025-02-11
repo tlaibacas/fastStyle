@@ -1,6 +1,7 @@
 const jwtHelper = require("../utils/jwtHelper");
 const User = require("../models/userModel");
 const argon2 = require("argon2");
+const crypto = require("crypto");
 const { hashData } = require("../utils/cryptoHelper");
 
 const login = async (req, res) => {

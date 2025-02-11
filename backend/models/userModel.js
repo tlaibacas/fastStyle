@@ -3,15 +3,7 @@ const cryptoHelper = require("../utils/cryptoHelper");
 const passwordHelper = require("../utils/passwordHelper");
 const crypto = require("crypto");
 const validator = require("validator");
-
-// Lookup hash for encrypted fields
-function generateLookupHash(text) {
-  if (!process.env.HASH_KEY) throw new Error("HASH_KEY not set");
-  return crypto
-    .createHmac("sha256", process.env.HASH_KEY)
-    .update(text)
-    .digest("hex");
-}
+const { generateLookupHash } = require("../utils/cryptoHelper");
 
 // Schema for encrypted fields
 const EncryptedFieldSchema = new mongoose.Schema(
