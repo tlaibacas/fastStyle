@@ -37,7 +37,6 @@ const UserSchema = new mongoose.Schema(
       },
     },
     email: {
-      type: EncryptedFieldSchema,
       unique: true,
       set: function (value) {
         if (typeof value === "string") {
@@ -49,6 +48,7 @@ const UserSchema = new mongoose.Schema(
         }
         return value;
       },
+      type: EncryptedFieldSchema,
     },
     usernameHash: {
       type: String,
