@@ -1,16 +1,16 @@
 const jwtHelper = require("../utils/jwtHelper");
 const User = require("../models/userModel");
 const argon2 = require("argon2");
-const { hashData } = require("../utils/cryptoHelper"); // Função para gerar o hash
+const { hashData } = require("../utils/cryptoHelper");
 
 const login = async (req, res) => {
   const { identifier, password } = req.body;
 
   try {
-    // Gerar hash do identificador (email ou username)
+    // Generate hash from identifier
     const identifierHash = hashData(identifier);
 
-    // Buscar usuário no banco pelo userHash ou emailHash
+    // Find user by email or username
     const user = await User.findOne({
       $or: [{ emailHash: identifierHash }, { userHash: identifierHash }],
     });
@@ -21,7 +21,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Verificar a senha
+    // Verify the password
     const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
       return res.status(401).json({
@@ -29,10 +29,10 @@ const login = async (req, res) => {
       });
     }
 
-    // Gerar token JWT
+    // Generate JWT token
     const token = await jwtHelper.generateToken(user._id);
 
-    // Retornar token
+    // Return token
     res.status(200).json({ token });
   } catch (error) {
     console.error("Login error:", error);
