@@ -54,9 +54,20 @@ exports.createUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(400).json({
-      status: "fail",
-      message: err.message,
+    console.error("Error creating user:", err);
+
+    if (err.name === "ValidationError") {
+      let firstError = Object.values(err.errors)[0];
+
+      return res.status(400).json({
+        status: "fail",
+        message: firstError.reason?.message || firstError.message,
+      });
+    }
+
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error",
     });
   }
 };

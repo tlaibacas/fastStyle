@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const cryptoHelper = require("../utils/cryptoHelper");
 const passwordHelper = require("../utils/passwordHelper");
-const crypto = require("crypto");
 const validator = require("validator");
 const { generateLookupHash } = require("../utils/cryptoHelper");
 
@@ -22,16 +21,17 @@ const UserSchema = new mongoose.Schema(
       set: function (value) {
         if (typeof value === "string") {
           this.usernameHash = generateLookupHash(value);
-
           return cryptoHelper.encrypt(value);
         }
         return value;
       },
     },
     email: {
+      type: EncryptedFieldSchema,
       unique: true,
       set: function (value) {
         if (typeof value === "string") {
+          // Validação do email
           if (!validator.isEmail(value)) {
             throw new Error("Invalid email format");
           }
@@ -40,7 +40,6 @@ const UserSchema = new mongoose.Schema(
         }
         return value;
       },
-      type: EncryptedFieldSchema,
     },
     usernameHash: {
       type: String,
@@ -63,18 +62,11 @@ const UserSchema = new mongoose.Schema(
     },
     role: {
       type: EncryptedFieldSchema,
-
-      default: function () {
-        return cryptoHelper.encrypt("client");
-      },
-      set: function (value) {
-        if (typeof value === "string") {
-          if (!["client", "worker", "admin"].includes(value)) {
-            throw new Error("Invalid role");
-          }
-          return cryptoHelper.encrypt(value);
-        }
-        return value;
+      default: () => cryptoHelper.encrypt("client"),
+      set: (value) => {
+        const validRoles = ["client", "worker", "admin"];
+        if (!validRoles.includes(value)) throw new Error("Invalid role");
+        return cryptoHelper.encrypt(value);
       },
     },
   },
@@ -104,6 +96,7 @@ UserSchema.virtual("decryptedRole").get(function () {
   return cryptoHelper.decrypt(this.role);
 });
 
+// Middleware para criptografar a senha antes de salvar
 UserSchema.pre("save", async function (next) {
   try {
     if (this.isModified("password")) {
