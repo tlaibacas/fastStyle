@@ -73,12 +73,15 @@ const UserSchema = new mongoose.Schema(
   {
     timestamps: true,
     toJSON: {
-      virtuals: true,
+      virtuals: false,
       transform: (doc, ret) => {
         delete ret.password;
         delete ret.__v;
         delete ret.usernameHash;
         delete ret.emailHash;
+        delete ret.username;
+        delete ret.email;
+        delete ret.role;
         return ret;
       },
     },

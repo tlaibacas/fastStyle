@@ -73,9 +73,6 @@ exports.createUser = async (req, res) => {
       status: "success",
       data: {
         _id: newUser._id,
-        username: newUser.decryptedUsername,
-        email: newUser.decryptedEmail,
-        role: newUser.decryptedRole,
       },
     });
   } catch (err) {
