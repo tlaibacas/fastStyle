@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       set: function (value) {
         if (typeof value === "string") {
-          // Validação do email
+          // Email validation
           if (!validator.isEmail(value)) {
             throw new Error("Invalid email format");
           }
@@ -96,7 +96,7 @@ UserSchema.virtual("decryptedRole").get(function () {
   return cryptoHelper.decrypt(this.role);
 });
 
-// Middleware para criptografar a senha antes de salvar
+// Middleware to encrypt the password before saving
 UserSchema.pre("save", async function (next) {
   try {
     if (this.isModified("password")) {
