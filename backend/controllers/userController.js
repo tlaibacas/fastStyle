@@ -39,12 +39,10 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Gera os hashes para busca
-    const emailHash = generateLookupHash(email);
-    const usernameHash = generateLookupHash(username);
-
     // Verifica se o email já existe
-    const existingEmail = await User.findOne({ emailHash });
+    const existingEmail = await User.findOne({
+      emailHash: generateLookupHash(email),
+    });
     if (existingEmail) {
       return res.status(400).json({
         status: "fail",
@@ -53,7 +51,9 @@ exports.createUser = async (req, res) => {
     }
 
     // Verifica se o username já existe
-    const existingUsername = await User.findOne({ usernameHash });
+    const existingUsername = await User.findOne({
+      usernameHash: generateLookupHash(username),
+    });
     if (existingUsername) {
       return res.status(400).json({
         status: "fail",
@@ -61,10 +61,10 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Cria o novo usuário
+    // Cria o novo usuário com os dados corretos
     const newUser = await User.create({
-      emailHash,
-      usernameHash,
+      email,
+      username,
       password,
       role: role || "client",
     });
