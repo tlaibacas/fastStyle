@@ -39,7 +39,7 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Verifica se o email já existe
+    // Check if email already exists
     const existingEmail = await User.findOne({
       emailHash: generateLookupHash(email),
     });
@@ -50,7 +50,7 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Verifica se o username já existe
+    // Check if username already exists
     const existingUsername = await User.findOne({
       usernameHash: generateLookupHash(username),
     });
@@ -61,7 +61,7 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // Cria o novo usuário com os dados corretos
+    // Create the new user with the correct data
     const newUser = await User.create({
       email,
       username,
