@@ -2,14 +2,14 @@ const jwtHelper = require("../utils/jwtHelper");
 const User = require("../models/userModel");
 const argon2 = require("argon2");
 const crypto = require("crypto");
-const { hashData } = require("../utils/cryptoHelper");
+const { generateLookupHash } = require("../utils/cryptoHelper");
 
 const login = async (req, res) => {
   const { identifier, password } = req.body;
 
   try {
     // Generate hash from identifier
-    const identifierHash = hashData(identifier);
+    const identifierHash = generateLookupHash(identifier);
 
     // Find user by email or username
     const user = await User.findOne({
