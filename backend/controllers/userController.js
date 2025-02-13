@@ -26,6 +26,8 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // Create user
+const { generateLookupHash } = require("../utils/cryptoHelper");
+
 exports.createUser = async (req, res) => {
   try {
     const { email, username, password, role } = req.body;
@@ -37,9 +39,32 @@ exports.createUser = async (req, res) => {
       });
     }
 
+    // Gera os hashes para busca
+    const emailHash = generateLookupHash(email);
+    const usernameHash = generateLookupHash(username);
+
+    // Verifica se o email já existe
+    const existingEmail = await User.findOne({ emailHash });
+    if (existingEmail) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Email already exists",
+      });
+    }
+
+    // Verifica se o username já existe
+    const existingUsername = await User.findOne({ usernameHash });
+    if (existingUsername) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Username already exists",
+      });
+    }
+
+    // Cria o novo usuário
     const newUser = await User.create({
-      email,
-      username,
+      emailHash,
+      usernameHash,
       password,
       role: role || "client",
     });
