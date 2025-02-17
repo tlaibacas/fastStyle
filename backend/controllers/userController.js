@@ -32,7 +32,10 @@ exports.createUser = async (req, res) => {
   try {
     const { email, username, password, role } = req.body;
 
+    console.log("Request body:", req.body);
+
     if (!email || !username || !password) {
+      console.log("Missing required fields");
       return res.status(400).json({
         status: "fail",
         message: "Email, username and password are required",
@@ -44,6 +47,7 @@ exports.createUser = async (req, res) => {
       emailHash: generateLookupHash(email),
     });
     if (existingEmail) {
+      console.log("Email already exists:", email);
       return res.status(400).json({
         status: "fail",
         message: "Email already exists",
@@ -55,6 +59,7 @@ exports.createUser = async (req, res) => {
       usernameHash: generateLookupHash(username),
     });
     if (existingUsername) {
+      console.log("Username already exists:", username);
       return res.status(400).json({
         status: "fail",
         message: "Username already exists",
@@ -68,6 +73,8 @@ exports.createUser = async (req, res) => {
       password,
       role: role || "client",
     });
+
+    console.log("New user created:", newUser);
 
     res.status(201).json({
       status: "success",

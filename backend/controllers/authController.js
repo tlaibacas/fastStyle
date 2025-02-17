@@ -1,19 +1,19 @@
 const jwtHelper = require("../utils/jwtHelper");
 const User = require("../models/userModel");
 const argon2 = require("argon2");
-const crypto = require("crypto");
 const { generateLookupHash } = require("../utils/cryptoHelper");
+const cryptoHelper = require("../utils/cryptoHelper");
 
 const login = async (req, res) => {
   const { identifier, password } = req.body;
 
   try {
-    // Generate hash from identifier
+    // Generate hash of the identifier (email or username)
     const identifierHash = generateLookupHash(identifier);
 
-    // Find user by email or username
+    // Find user by emailHash or usernameHash
     const user = await User.findOne({
-      $or: [{ emailHash: identifierHash }, { userHash: identifierHash }],
+      $or: [{ emailHash: identifierHash }, { usernameHash: identifierHash }],
     });
 
     if (!user) {
@@ -30,8 +30,14 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const token = await jwtHelper.generateToken(user._id);
+    // Decrypt the role
+    const decryptedRole = cryptoHelper.decrypt(user.role);
+
+    // Generate JWT token with userId and role
+    const token = await jwtHelper.generateToken({
+      userId: user._id,
+      role: decryptedRole, // Include the decrypted role in the token
+    });
 
     // Return token
     res.status(200).json({ token });

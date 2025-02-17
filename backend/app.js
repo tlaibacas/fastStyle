@@ -24,7 +24,7 @@ app.use("/auth", loginRoutes);
 app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Welcome to the backend!");
 });
 
 module.exports = app;
