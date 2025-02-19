@@ -1,5 +1,5 @@
 const User = require("../models/userModel");
-const { decrypt } = require("../utils/cryptoHelper");
+const { decrypt, generateLookupHash } = require("../utils/cryptoHelper");
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -26,16 +26,11 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // Create user
-const { generateLookupHash } = require("../utils/cryptoHelper");
-
 exports.createUser = async (req, res) => {
   try {
     const { email, username, password, role } = req.body;
 
-    console.log("Request body:", req.body);
-
     if (!email || !username || !password) {
-      console.log("Missing required fields");
       return res.status(400).json({
         status: "fail",
         message: "Email, username and password are required",
@@ -47,7 +42,6 @@ exports.createUser = async (req, res) => {
       emailHash: generateLookupHash(email),
     });
     if (existingEmail) {
-      console.log("Email already exists:", email);
       return res.status(400).json({
         status: "fail",
         message: "Email already exists",
@@ -59,7 +53,6 @@ exports.createUser = async (req, res) => {
       usernameHash: generateLookupHash(username),
     });
     if (existingUsername) {
-      console.log("Username already exists:", username);
       return res.status(400).json({
         status: "fail",
         message: "Username already exists",
@@ -74,8 +67,6 @@ exports.createUser = async (req, res) => {
       role: role || "client",
     });
 
-    console.log("New user created:", newUser);
-
     res.status(201).json({
       status: "success",
       data: {
@@ -83,8 +74,6 @@ exports.createUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error creating user:", err);
-
     if (err.name === "ValidationError") {
       let firstError = Object.values(err.errors)[0];
 
