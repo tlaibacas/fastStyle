@@ -2,7 +2,6 @@ const jwtHelper = require("../utils/jwtHelper");
 const User = require("../models/userModel");
 const argon2 = require("argon2");
 const { generateLookupHash } = require("../utils/cryptoHelper");
-const cryptoHelper = require("../utils/cryptoHelper");
 
 const login = async (req, res) => {
   const { identifier, password } = req.body;
@@ -30,13 +29,9 @@ const login = async (req, res) => {
       });
     }
 
-    // Decrypt the role
-    const decryptedRole = cryptoHelper.decrypt(user.role);
-
-    // Generate JWT token with userId and role
+    // Generate JWT token with userId only
     const token = await jwtHelper.generateToken({
       userId: user._id,
-      role: decryptedRole, // Include the decrypted role in the token
     });
 
     // Return token
