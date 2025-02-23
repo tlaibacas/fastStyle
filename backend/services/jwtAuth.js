@@ -10,7 +10,7 @@ const jwtAuth = (req, res, next) => {
 
   try {
     const decoded = verifyToken(token);
-    req.user = { userId: decoded.userId }; // Only the userId is attached
+    req.user = { userId: decoded.userId };
     console.log("Token successfully verified. User ID:", decoded.userId);
     next();
   } catch (error) {
